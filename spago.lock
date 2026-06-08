@@ -11,6 +11,7 @@
             "debug",
             "effect",
             "halogen",
+            "js-promise-aff",
             "json",
             "prelude"
           ]
@@ -1008,6 +1009,23 @@
         "maybe",
         "newtype",
         "prelude"
+      ]
+    },
+    "js-promise-aff": {
+      "type": "registry",
+      "version": "1.0.0",
+      "integrity": "sha256-gEKAdNnTWjXS+tTp/AhYl/ezloKfuoQFcBKrdOx2USo=",
+      "dependencies": [
+        "aff",
+        "control",
+        "effect",
+        "either",
+        "exceptions",
+        "foreign",
+        "js-promise",
+        "maybe",
+        "prelude",
+        "transformers"
       ]
     },
     "json": {

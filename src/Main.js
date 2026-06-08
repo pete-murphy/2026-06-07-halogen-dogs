@@ -19,19 +19,29 @@ export function _fetch(url) {
   };
 }
 
-export function _setupRouting(onPathChange, onQueryChange) {
+export function _setupRouting(onNavigate) {
   const listener = (event) => {
-    const oldURL = new URL(window.location);
-    const newURL = new URL(event.destination.url);
+    const url = new URL(event.destination.url);
     event.intercept({
       async handler() {
-        if (oldURL.pathname != newURL.pathname) onPathChange(newURL.pathname);
-        if (oldURL.searchParams.get("q") != newURL.searchParams.get("q"))
-          onQueryChange(newURL.searchParams.get("q"));
+        await onNavigate(url);
       },
     });
   };
 
   navigation.addEventListener("navigate", listener);
   return () => navigation.removeEventListener("navigation", listener);
+}
+
+export function pathname(url) {
+  return url.pathname;
+}
+export function searchParams(url) {
+  return url.searchParams;
+}
+export function eqURL(url0, url1) {
+  return url0.pathname == url1.pathname && url0.search == url1.search;
+}
+export function currentURL() {
+  return new URL(window.location);
 }
