@@ -6,6 +6,7 @@
         "core": {
           "dependencies": [
             "aff",
+            "codec",
             "console",
             "debug",
             "effect",
@@ -546,6 +547,19 @@
         "prelude",
         "tuples",
         "unfoldable"
+      ]
+    },
+    "codec": {
+      "type": "registry",
+      "version": "6.1.0",
+      "integrity": "sha256-WzfYiZsnqHJ/K4IliEEOkLLmsKozy8c7/fbrGZHASOk=",
+      "dependencies": [
+        "bifunctors",
+        "control",
+        "invariant",
+        "prelude",
+        "profunctor",
+        "tuples"
       ]
     },
     "console": {

@@ -3,9 +3,6 @@ export function _fetch(url) {
     const controller = new AbortController();
     const signal = controller.signal;
     const cancel = () => controller.abort();
-    signal.addEventListener("abort", () => {
-      console.log("Fetch aborted");
-    });
     fetch(url, { signal })
       .then((response) => {
         if (!response.ok) {
@@ -17,8 +14,24 @@ export function _fetch(url) {
       .catch(onError);
     return (cancelError, _onCancelerError, onCancelerSuccess) => {
       const aborted = cancel();
-      console.log("aborted", aborted);
       onCancelerSuccess();
     };
   };
+}
+
+export function _setupRouting(onPathChange, onQueryChange) {
+  const listener = (event) => {
+    const oldURL = new URL(window.location);
+    const newURL = new URL(event.destination.url);
+    event.intercept({
+      async handler() {
+        if (oldURL.pathname != newURL.pathname) onPathChange(newURL.pathname);
+        if (oldURL.searchParams.get("q") != newURL.searchParams.get("q"))
+          onQueryChange(newURL.searchParams.get("q"));
+      },
+    });
+  };
+
+  navigation.addEventListener("navigate", listener);
+  return () => navigation.removeEventListener("navigation", listener);
 }

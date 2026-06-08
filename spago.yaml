@@ -2,6 +2,7 @@ package:
   name: 2026-06-07-halogen-dogs
   dependencies:
     - aff
+    - codec
     - console
     - debug
     - effect
