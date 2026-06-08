@@ -1,0 +1,17 @@
+package:
+  name: 2026-06-07-halogen-dogs
+  dependencies:
+    - aff
+    - console
+    - debug
+    - effect
+    - halogen
+    - json
+    - prelude
+  test:
+    main: Test.Main
+    dependencies: []
+workspace:
+  packageSet:
+    registry: 43.3.0
+  extraPackages: {}
