@@ -62,7 +62,7 @@ type State =
   { url :: URL
   , shared :: Shared
   , page :: Page
-  , pageFiber :: Maybe (Aff.Fiber Page)
+  , pageFork :: Maybe Halogen.ForkId
   }
 
 type Shared =
@@ -180,7 +180,7 @@ app =
     { url
     , shared: { breeds: Loadable.loading }
     , page: pageFromMaybeRoute (parseRoute url)
-    , pageFiber: Nothing
+    , pageFork: Nothing
     }
 
   render :: State -> ComponentHTML Action () Aff
@@ -229,12 +229,10 @@ app =
               pure (join parsed)
           )
       url <- Halogen.gets _.url
-      pageFiber <- Halogen.liftAff (Aff.forkAff (loadPageForURL url))
-      Halogen.modify_ \state -> state { pageFiber = Just pageFiber }
-      page <- Halogen.liftAff (Aff.joinFiber pageFiber)
+      pageFork <- Halogen.fork (loadPageForURL url)
       Halogen.modify_ \state -> state
-        { page = page
-        , shared = { breeds: Loadable.fromEither dogs }
+        { shared = { breeds: Loadable.fromEither dogs }
+        , pageFork = Just pageFork
         }
 
   handleQuery :: forall a. Query a -> HalogenM State Action () output Aff (Maybe a)
@@ -244,37 +242,35 @@ app =
       when (current.url /= url) do
         Halogen.modify_ \state -> state { url = url }
         -- Cancel any pending requests
-        previousFiber <- Halogen.gets _.pageFiber
-        for_ previousFiber (Halogen.liftAff <<< Aff.killFiber (Aff.error "Pending page load cancelled"))
-        pageFiber <- Halogen.liftAff (Aff.forkAff (loadPageForURL url))
-        Halogen.modify_ \state -> state { pageFiber = Just pageFiber }
-        page <- Halogen.liftAff (Aff.joinFiber pageFiber)
-        Halogen.modify_ \state -> state { page = page }
+        previousFork <- Halogen.gets _.pageFork
+        for_ previousFork Halogen.kill
+        pageFork <- Halogen.fork (loadPageForURL url)
+        Halogen.modify_ \state -> state { pageFork = Just pageFork }
       pure (Just next)
 
-loadPageForURL :: URL -> Aff Page
-loadPageForURL url =
+loadPageForURL :: forall output. URL -> HalogenM State Action () output Aff Unit
+loadPageForURL url = do
+  let setPage page = Halogen.modify_ \state -> state { page = page }
   case parseRoute url of
     Nothing ->
-      pure Page'NotFound
+      setPage Page'NotFound
     Just Route'Home ->
-      pure Page'Home
+      setPage Page'Home
     Just (Route'Breed breed) -> do
-      let
-        path = case breed.subBreed of
-          Just subBreed -> breed.parentBreed <> "/" <> subBreed
-          Nothing -> breed.parentBreed
-        url' = "https://dog.ceo/api/breed/" <> path <> "/images"
-
       images <- Halogen.liftAff do
+        let
+          path = case breed.subBreed of
+            Just subBreed -> breed.parentBreed <> "/" <> subBreed
+            Nothing -> breed.parentBreed
+          url' = "https://dog.ceo/api/breed/" <> path <> "/images"
         HTTP.get url'
           ( withMessage \message -> do
               JSON.toJArray message >>= JSON.Array.toArray >>> traverse JSON.toString
                 # Either.note "Expected an array of strings"
           )
-      pure (Page'Breed { images: Loadable.fromEither images })
+      setPage (Page'Breed { images: Loadable.fromEither images })
     Just (Route'Image _ _) ->
-      pure Page'Image
+      setPage Page'Image
 
 withMessage :: forall a. (JSON -> Either String a) -> JSON -> Either String a
 withMessage k json = do
