@@ -1,4 +1,8 @@
-module URL where
+module URL
+  ( pathname
+  , fromLocation
+  , URL
+  ) where
 
 import Prelude
 

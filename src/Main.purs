@@ -30,7 +30,7 @@ import Halogen as Halogen
 import Halogen.Aff as Halogen.Aff
 import Halogen.HTML (HTML)
 import Halogen.HTML as HTML
-import Halogen.HTML.Properties (IProp(..))
+import Halogen.HTML.Properties (IProp)
 import Halogen.HTML.Properties as Properties
 import Halogen.VDom.Driver as Driver
 import JSON (JSON)
@@ -91,12 +91,18 @@ data Route
 routeCodec :: Codec' Maybe String Route
 routeCodec = Codec.codec'
   ( \path -> case String.split (Pattern "/") path # Array.drop 1 of
-      [ "" ] -> Just Route'Home
-      [ parentBreed ] -> Just (Route'Breed { parentBreed, subBreed: Nothing })
-      [ parentBreed, subBreed ] -> Just (Route'Breed { parentBreed, subBreed: Just subBreed })
-      [ parentBreed, "image", image ] -> Just (Route'Image { parentBreed, subBreed: Nothing } image)
-      [ parentBreed, subBreed, "image", image ] -> Just (Route'Image { parentBreed, subBreed: Just subBreed } image)
-      _ -> Nothing
+      [ "" ] ->
+        Just Route'Home
+      [ parentBreed ] ->
+        Just (Route'Breed { parentBreed, subBreed: Nothing })
+      [ parentBreed, subBreed ] ->
+        Just (Route'Breed { parentBreed, subBreed: Just subBreed })
+      [ parentBreed, "image", image ] ->
+        Just (Route'Image { parentBreed, subBreed: Nothing } image)
+      [ parentBreed, subBreed, "image", image ] ->
+        Just (Route'Image { parentBreed, subBreed: Just subBreed } image)
+      _ ->
+        Nothing
   )
   ( case _ of
       Route'Home -> "/"
@@ -202,7 +208,7 @@ app =
             Loadable.Success images' -> HTML.ul_
               (images' <#> \image -> HTML.li_ [ renderImage image ])
           Page'Image -> HTML.text "Image"
-          Page'NotFound -> HTML.text "Not found!"
+          Page'NotFound -> HTML.text ""
       ]
 
   handleAction :: Action -> HalogenM State Action () output Aff Unit
