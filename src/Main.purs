@@ -14,10 +14,11 @@ import Data.Either as Either
 import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..))
 import Data.String as String
-import Data.Traversable (for, traverse)
+import Data.Traversable (for, for_, traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
+import Effect.Aff as Aff
 import Effect.Aff.Compat (EffectFn1)
 import Effect.Aff.Compat as Aff.Compat
 import Effect.Aff.Compat as Effect
@@ -61,6 +62,7 @@ type State =
   { url :: URL
   , shared :: Shared
   , page :: Page
+  , pageFiber :: Maybe (Aff.Fiber Page)
   }
 
 type Shared =
@@ -170,6 +172,7 @@ app =
     { url
     , shared: { breeds: Loadable.loading }
     , page: pageFromMaybeRoute (parseRoute url)
+    , pageFiber: Nothing
     }
 
   render :: State -> ComponentHTML Action () Aff
@@ -218,7 +221,9 @@ app =
               pure (join parsed)
           )
       url <- Halogen.gets _.url
-      page <- Halogen.liftAff (loadPageForURL url)
+      pageFiber <- Halogen.liftAff (Aff.forkAff (loadPageForURL url))
+      Halogen.modify_ \state -> state { pageFiber = Just pageFiber }
+      page <- Halogen.liftAff (Aff.joinFiber pageFiber)
       Halogen.modify_ \state -> state
         { page = page
         , shared = { breeds: Loadable.fromEither dogs }
@@ -230,7 +235,12 @@ app =
       current <- Halogen.get
       when (current.url /= url) do
         Halogen.modify_ \state -> state { url = url }
-        page <- Halogen.liftAff (loadPageForURL url)
+        -- Cancel any pending requests
+        previousFiber <- Halogen.gets _.pageFiber
+        for_ previousFiber (Halogen.liftAff <<< Aff.killFiber (Aff.error "Pending page load cancelled"))
+        pageFiber <- Halogen.liftAff (Aff.forkAff (loadPageForURL url))
+        Halogen.modify_ \state -> state { pageFiber = Just pageFiber }
+        page <- Halogen.liftAff (Aff.joinFiber pageFiber)
         Halogen.modify_ \state -> state { page = page }
       pure (Just next)
 
