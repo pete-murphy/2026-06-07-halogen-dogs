@@ -11,3 +11,5 @@ export function _setupRouting(onNavigate) {
   navigation.addEventListener("navigate", listener);
   return () => navigation.removeEventListener("navigation", listener);
 }
+
+export const baseURL = window.__BASE_URL__;

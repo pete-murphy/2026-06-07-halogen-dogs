@@ -12,7 +12,7 @@ import Data.Codec as Codec
 import Data.Either (Either)
 import Data.Either as Either
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..))
+import Data.String (Pattern(..), Replacement(..))
 import Data.String as String
 import Data.Traversable (for, for_, traverse)
 import Data.Tuple (Tuple(..))
@@ -90,7 +90,7 @@ data Route
 
 routeCodec :: Codec' Maybe String Route
 routeCodec = Codec.codec'
-  ( \path -> case String.split (Pattern "/") path # Array.drop 1 of
+  ( \path -> case path # String.replace (Pattern baseURL) (Replacement "") # String.split (Pattern "/") of
       [ "" ] ->
         Just Route'Home
       [ parentBreed ] ->
@@ -104,14 +104,14 @@ routeCodec = Codec.codec'
       _ ->
         Nothing
   )
-  ( case _ of
-      Route'Home -> "/"
+  ( (baseURL <> _) <<< case _ of
+      Route'Home -> mempty
       Route'Breed { parentBreed, subBreed } -> case subBreed of
-        Nothing -> "/" <> parentBreed
-        Just subBreed' -> "/" <> parentBreed <> "/" <> subBreed'
+        Nothing -> parentBreed
+        Just subBreed' -> parentBreed <> "/" <> subBreed'
       Route'Image { parentBreed, subBreed } image -> (_ <> "/image/" <> image) case subBreed of
-        Nothing -> "/" <> parentBreed
-        Just subBreed' -> "/" <> parentBreed <> "/" <> subBreed'
+        Nothing -> parentBreed
+        Just subBreed' -> parentBreed <> "/" <> subBreed'
   )
 
 parseRoute :: URL -> Maybe Route
@@ -136,6 +136,8 @@ setupRouting
 setupRouting onNavigate = do
   Aff.Compat.runEffectFn1 _setupRouting
     (Effect.mkEffectFn1 (Promise.Aff.fromAff <<< onNavigate))
+
+foreign import baseURL :: String
 
 renderLink :: forall w i. DogBreed -> HTML w i
 renderLink breed@{ parentBreed, subBreed } =
