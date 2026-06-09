@@ -2465,6 +2465,34 @@
       return Aff.Fiber(util, null, aff);
     };
   }
+  var _delay = /* @__PURE__ */ (function() {
+    function setDelay(n, k) {
+      if (n === 0 && typeof setImmediate !== "undefined") {
+        return setImmediate(k);
+      } else {
+        return setTimeout(k, n);
+      }
+    }
+    function clearDelay(n, t) {
+      if (n === 0 && typeof clearImmediate !== "undefined") {
+        return clearImmediate(t);
+      } else {
+        return clearTimeout(t);
+      }
+    }
+    return function(right, ms) {
+      return Aff.Async(function(cb) {
+        return function() {
+          var timer = setDelay(ms, cb(right()));
+          return function() {
+            return Aff.Sync(function() {
+              return right(clearDelay(ms, timer));
+            });
+          };
+        };
+      });
+    };
+  })();
   var _sequential = Aff.Seq;
 
   // output/Effect.Exception/foreign.js
@@ -2669,6 +2697,9 @@
       fiber.run();
       return fiber;
     };
+  };
+  var delay = function(v) {
+    return _delay(Right.create, v);
   };
   var bracket = function(acquire) {
     return function(completed) {
@@ -5681,6 +5712,7 @@
   };
 
   // output/Halogen.Query.HalogenM/index.js
+  var identity9 = /* @__PURE__ */ identity(categoryFn);
   var SubscriptionId = function(x) {
     return x;
   };
@@ -5859,7 +5891,13 @@
       }
     };
   };
+  var kill = function(fid) {
+    return liftF(new Kill(fid, unit));
+  };
   var functorHalogenM = freeFunctor;
+  var fork = function(hmu) {
+    return liftF(new Fork(hmu, identity9));
+  };
   var bindHalogenM = freeBind;
   var applicativeHalogenM = freeApplicative;
 
@@ -6846,7 +6884,7 @@
   var unwrap2 = /* @__PURE__ */ unwrap();
   var when3 = /* @__PURE__ */ when(applicativeEffect);
   var not2 = /* @__PURE__ */ not(/* @__PURE__ */ heytingAlgebraFunction(/* @__PURE__ */ heytingAlgebraFunction(heytingAlgebraBoolean)));
-  var identity9 = /* @__PURE__ */ identity(categoryFn);
+  var identity10 = /* @__PURE__ */ identity(categoryFn);
   var bind15 = /* @__PURE__ */ bind(bindAff);
   var liftEffect6 = /* @__PURE__ */ liftEffect(monadEffectAff);
   var map18 = /* @__PURE__ */ map(functorEffect);
@@ -6988,7 +7026,7 @@
       };
       return {
         render,
-        renderChild: identity9,
+        renderChild: identity10,
         removeChild: removeChild3,
         dispose: removeChild3
       };
@@ -7077,9 +7115,10 @@
   var bind16 = /* @__PURE__ */ bind(bindMaybe);
   var fromAff2 = /* @__PURE__ */ fromAff();
   var mempty2 = /* @__PURE__ */ mempty(monoidString);
-  var pure10 = /* @__PURE__ */ pure(applicativeAff);
-  var bind22 = /* @__PURE__ */ bind(bindAff);
-  var liftAff2 = /* @__PURE__ */ liftAff(monadAffAff);
+  var modify_3 = /* @__PURE__ */ modify_(monadStateHalogenM);
+  var bind22 = /* @__PURE__ */ bind(bindHalogenM);
+  var discard5 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
+  var liftAff2 = /* @__PURE__ */ liftAff(/* @__PURE__ */ monadAffHalogenM(monadAffAff));
   var traverse2 = /* @__PURE__ */ traverse(traversableArray)(applicativeMaybe);
   var show3 = /* @__PURE__ */ show(/* @__PURE__ */ showRecord()()(/* @__PURE__ */ showRecordFieldsCons({
     reflectSymbol: function() {
@@ -7092,24 +7131,21 @@
   })(/* @__PURE__ */ showMaybe(showString)))(showString)));
   var show1 = /* @__PURE__ */ show(showError2);
   var mapFlipped2 = /* @__PURE__ */ mapFlipped(functorArray);
-  var bind32 = /* @__PURE__ */ bind(bindHalogenM);
   var get3 = /* @__PURE__ */ get(monadStateHalogenM);
-  var discard5 = /* @__PURE__ */ discard(discardUnit)(bindHalogenM);
   var when4 = /* @__PURE__ */ when(applicativeHalogenM);
   var notEq2 = /* @__PURE__ */ notEq(eqURL);
-  var modify_3 = /* @__PURE__ */ modify_(monadStateHalogenM);
   var gets2 = /* @__PURE__ */ gets(monadStateHalogenM);
   var for_3 = /* @__PURE__ */ for_(applicativeHalogenM)(foldableMaybe);
-  var liftAff1 = /* @__PURE__ */ liftAff(/* @__PURE__ */ monadAffHalogenM(monadAffAff));
-  var pure13 = /* @__PURE__ */ pure(applicativeHalogenM);
+  var pure10 = /* @__PURE__ */ pure(applicativeHalogenM);
   var $$for2 = /* @__PURE__ */ $$for(applicativeEither)(traversableArray);
   var toUnfoldable3 = /* @__PURE__ */ toUnfoldable2(unfoldableArray);
   var alt6 = /* @__PURE__ */ alt(altMaybe);
   var voidLeft4 = /* @__PURE__ */ voidLeft(functorMaybe);
-  var pure23 = /* @__PURE__ */ pure(applicativeEither);
+  var pure13 = /* @__PURE__ */ pure(applicativeEither);
   var map19 = /* @__PURE__ */ map(functorArray);
   var join3 = /* @__PURE__ */ join(bindArray);
   var bindFlipped8 = /* @__PURE__ */ bindFlipped(bindEffect);
+  var bind32 = /* @__PURE__ */ bind(bindAff);
   var liftEffect7 = /* @__PURE__ */ liftEffect(monadEffectAff);
   var $$void7 = /* @__PURE__ */ $$void(functorAff);
   var OnNavigate = /* @__PURE__ */ (function() {
@@ -7202,8 +7238,8 @@
   };
   var setupRouting = function(onNavigate) {
     return function() {
-      return _setupRouting(function($159) {
-        return fromAff2(onNavigate($159))();
+      return _setupRouting(function($153) {
+        return fromAff2(onNavigate($153))();
       });
     };
   };
@@ -7242,7 +7278,7 @@
     }
     ;
     return Nothing.value;
-  })(function($160) {
+  })(function($154) {
     return (function(v) {
       return baseURL + v;
     })((function(v) {
@@ -7279,7 +7315,7 @@
       }
       ;
       throw new Error("Failed pattern match at Main (line 107, column 24 - line 114, column 58): " + [v.constructor.name]);
-    })($160));
+    })($154));
   });
   var routeHref = function(route) {
     return href4(encode(routeCodec)(route));
@@ -7325,47 +7361,71 @@
     throw new Error("Failed pattern match at Main (line 122, column 22 - line 126, column 39): " + [v.constructor.name]);
   };
   var loadPageForURL = function(url) {
+    var setPage = function(page) {
+      return modify_3(function(state3) {
+        var $107 = {};
+        for (var $108 in state3) {
+          if ({}.hasOwnProperty.call(state3, $108)) {
+            $107[$108] = state3[$108];
+          }
+          ;
+        }
+        ;
+        $107.page = page;
+        return $107;
+      });
+    };
     var v = parseRoute(url);
     if (v instanceof Nothing) {
-      return pure10(Page$primeNotFound.value);
+      return setPage(Page$primeNotFound.value);
     }
     ;
     if (v instanceof Just && v.value0 instanceof Route$primeHome) {
-      return pure10(Page$primeHome.value);
+      return setPage(Page$primeHome.value);
     }
     ;
     if (v instanceof Just && v.value0 instanceof Route$primeBreed) {
-      var path = (function() {
-        if (v.value0.value0.subBreed instanceof Just) {
-          return v.value0.value0.parentBreed + ("/" + v.value0.value0.subBreed.value0);
-        }
-        ;
-        if (v.value0.value0.subBreed instanceof Nothing) {
-          return v.value0.value0.parentBreed;
-        }
-        ;
-        throw new Error("Failed pattern match at Main (line 264, column 16 - line 266, column 39): " + [v.value0.value0.subBreed.constructor.name]);
-      })();
-      var url$prime = "https://dog.ceo/api/breed/" + (path + "/images");
-      return bind22(liftAff2(get2(url$prime)(withMessage(function(message2) {
-        return note("Expected an array of strings")(bind16(toJArray(message2))((function() {
-          var $161 = traverse2(toString2);
-          return function($162) {
-            return $161(toArray($162));
-          };
-        })()));
-      }))))(function(images2) {
-        return pure10(new Page$primeBreed({
-          images: fromEither(images2)
+      return bind22(fork(discard5(liftAff2(delay(500)))(function() {
+        return setPage(new Page$primeBreed({
+          images: loading
         }));
+      })))(function(loadingFork) {
+        return bind22(liftAff2((function() {
+          var path = (function() {
+            if (v.value0.value0.subBreed instanceof Just) {
+              return v.value0.value0.parentBreed + ("/" + v.value0.value0.subBreed.value0);
+            }
+            ;
+            if (v.value0.value0.subBreed instanceof Nothing) {
+              return v.value0.value0.parentBreed;
+            }
+            ;
+            throw new Error("Failed pattern match at Main (line 266, column 18 - line 268, column 41): " + [v.value0.value0.subBreed.constructor.name]);
+          })();
+          var url$prime = "https://dog.ceo/api/breed/" + (path + "/images");
+          return get2(url$prime)(withMessage(function(message2) {
+            return note("Expected an array of strings")(bind16(toJArray(message2))((function() {
+              var $155 = traverse2(toString2);
+              return function($156) {
+                return $155(toArray($156));
+              };
+            })()));
+          }));
+        })()))(function(images2) {
+          return discard5(kill(loadingFork))(function() {
+            return setPage(new Page$primeBreed({
+              images: fromEither(images2)
+            }));
+          });
+        });
       });
     }
     ;
     if (v instanceof Just && v.value0 instanceof Route$primeImage) {
-      return pure10(Page$primeImage.value);
+      return setPage(Page$primeImage.value);
     }
     ;
-    throw new Error("Failed pattern match at Main (line 257, column 3 - line 277, column 22): " + [v.constructor.name]);
+    throw new Error("Failed pattern match at Main (line 254, column 3 - line 278, column 25): " + [v.constructor.name]);
   };
   var app = /* @__PURE__ */ (function() {
     var render = function(state3) {
@@ -7454,11 +7514,11 @@
           breeds: loading
         },
         page: pageFromMaybeRoute(parseRoute(url)),
-        pageFiber: Nothing.value
+        pageFork: Nothing.value
       };
     };
     var handleQuery = function(v) {
-      return bind32(get3)(function(current) {
+      return bind22(get3)(function(current) {
         return discard5(when4(notEq2(current.url)(v.value0))(discard5(modify_3(function(state3) {
           var $137 = {};
           for (var $138 in state3) {
@@ -7471,17 +7531,12 @@
           $137.url = v.value0;
           return $137;
         }))(function() {
-          return bind32(gets2(function(v1) {
-            return v1.pageFiber;
-          }))(function(previousFiber) {
-            return discard5(for_3(previousFiber)((function() {
-              var $163 = killFiber(error("Pending page load cancelled"));
-              return function($164) {
-                return liftAff1($163($164));
-              };
-            })()))(function() {
-              return bind32(liftAff1(forkAff(loadPageForURL(v.value0))))(function(pageFiber) {
-                return discard5(modify_3(function(state3) {
+          return bind22(gets2(function(v1) {
+            return v1.pageFork;
+          }))(function(previousFork) {
+            return discard5(for_3(previousFork)(kill))(function() {
+              return bind22(fork(loadPageForURL(v.value0)))(function(pageFork) {
+                return modify_3(function(state3) {
                   var $140 = {};
                   for (var $141 in state3) {
                     if ({}.hasOwnProperty.call(state3, $141)) {
@@ -7490,38 +7545,23 @@
                     ;
                   }
                   ;
-                  $140.pageFiber = new Just(pageFiber);
+                  $140.pageFork = new Just(pageFork);
                   return $140;
-                }))(function() {
-                  return bind32(liftAff1(joinFiber(pageFiber)))(function(page) {
-                    return modify_3(function(state3) {
-                      var $143 = {};
-                      for (var $144 in state3) {
-                        if ({}.hasOwnProperty.call(state3, $144)) {
-                          $143[$144] = state3[$144];
-                        }
-                        ;
-                      }
-                      ;
-                      $143.page = page;
-                      return $143;
-                    });
-                  });
                 });
               });
             });
           });
         })))(function() {
-          return pure13(new Just(v.value1));
+          return pure10(new Just(v.value1));
         });
       });
     };
     var handleAction = function(v) {
-      return bind32(liftAff1(get2("https://dog.ceo/api/breeds/list/all")(withMessage(function(message2) {
+      return bind22(liftAff2(get2("https://dog.ceo/api/breeds/list/all")(withMessage(function(message2) {
         return bind6(note("Expected an object")(toJObject(message2)))(function(obj) {
           return bind6($$for2(toUnfoldable3(obj))(function(v1) {
             return bind6(note("Expected null or array of strings")(alt6(bind16(toArray2(v1.value1))(traverse2(toString2)))(voidLeft4(toNull(v1.value1))([]))))(function(subBreeds) {
-              return pure23(map19(function(v2) {
+              return pure13(map19(function(v2) {
                 return {
                   parentBreed: v1.value0,
                   subBreed: v2
@@ -7529,43 +7569,28 @@
               })(cons(Nothing.value)(map19(Just.create)(subBreeds))));
             });
           }))(function(v1) {
-            return pure23(join3(v1));
+            return pure13(join3(v1));
           });
         });
       }))))(function(dogs) {
-        return bind32(gets2(function(v1) {
+        return bind22(gets2(function(v1) {
           return v1.url;
         }))(function(url) {
-          return bind32(liftAff1(forkAff(loadPageForURL(url))))(function(pageFiber) {
-            return discard5(modify_3(function(state3) {
-              var $153 = {};
-              for (var $154 in state3) {
-                if ({}.hasOwnProperty.call(state3, $154)) {
-                  $153[$154] = state3[$154];
+          return bind22(fork(loadPageForURL(url)))(function(pageFork) {
+            return modify_3(function(state3) {
+              var $150 = {};
+              for (var $151 in state3) {
+                if ({}.hasOwnProperty.call(state3, $151)) {
+                  $150[$151] = state3[$151];
                 }
                 ;
               }
               ;
-              $153.pageFiber = new Just(pageFiber);
-              return $153;
-            }))(function() {
-              return bind32(liftAff1(joinFiber(pageFiber)))(function(page) {
-                return modify_3(function(state3) {
-                  var $156 = {};
-                  for (var $157 in state3) {
-                    if ({}.hasOwnProperty.call(state3, $157)) {
-                      $156[$157] = state3[$157];
-                    }
-                    ;
-                  }
-                  ;
-                  $156.page = page;
-                  $156.shared = {
-                    breeds: fromEither(dogs)
-                  };
-                  return $156;
-                });
-              });
+              $150.shared = {
+                breeds: fromEither(dogs)
+              };
+              $150.pageFork = new Just(pageFork);
+              return $150;
             });
           });
         });
@@ -7586,8 +7611,8 @@
   })();
   var main2 = function __do2() {
     var url = bindFlipped8(fromLocation)(bindFlipped8(location)(windowImpl))();
-    return runHalogenAff(bind22(awaitBody)(function(body2) {
-      return bind22(runUI2(app)(url)(body2))(function(halogenIO) {
+    return runHalogenAff(bind32(awaitBody)(function(body2) {
+      return bind32(runUI2(app)(url)(body2))(function(halogenIO) {
         return liftEffect7((function() {
           var onNavigate = function(url$prime) {
             return $$void7(halogenIO.query(mkTell(OnNavigate.create(url$prime))));

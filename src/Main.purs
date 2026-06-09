@@ -17,7 +17,7 @@ import Data.String as String
 import Data.Traversable (for, for_, traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Milliseconds(..))
 import Effect.Aff as Aff
 import Effect.Aff.Compat (EffectFn1)
 import Effect.Aff.Compat as Aff.Compat
@@ -257,6 +257,10 @@ loadPageForURL url = do
     Just Route'Home ->
       setPage Page'Home
     Just (Route'Breed breed) -> do
+      loadingFork <- Halogen.fork do
+        Halogen.liftAff do
+          Aff.delay (500.0 # Milliseconds)
+        setPage (Page'Breed { images: Loadable.loading })
       images <- Halogen.liftAff do
         let
           path = case breed.subBreed of
@@ -268,6 +272,7 @@ loadPageForURL url = do
               JSON.toJArray message >>= JSON.Array.toArray >>> traverse JSON.toString
                 # Either.note "Expected an array of strings"
           )
+      Halogen.kill loadingFork
       setPage (Page'Breed { images: Loadable.fromEither images })
     Just (Route'Image _ _) ->
       setPage Page'Image
